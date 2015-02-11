@@ -9,5 +9,5 @@ import scala.io.Source
  */
 object Main extends App {
   val result = Parser(Source.fromFile("java.hprof.txt").getLines())
-  println(result.samples.take(5))
+  println(result.traces.take(2))
 }

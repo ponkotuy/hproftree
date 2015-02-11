@@ -10,23 +10,26 @@ import scala.util.Try
  * @author ponkotuy
  * Date: 15/02/11.
  */
-case class HProf(traces: Vector[Trace], count: Int, samples: Vector[Sample])
+case class HProf(traces: Vector[Trace], count: Int)
 
 object HProf {
   def apply(lines: Vector[Result]): HProf = {
+    val count = lines.collectFirst { case x: SamplesBegin => x }.map(_.total).getOrElse(0)
+
+    val samples = lines.collect { case x: Sample => x }
+      .map(x => x.trace -> x).toMap
 
     val traceLines = lines.collect {
       case x: StartTrace => x
       case x: Code => x
     }
     val traces = split[Result](traceLines, x => x.isInstanceOf[StartTrace]).collect {
-      case (x: StartTrace) +: (xs: Vector[_]) => Trace.fromResult(x, xs.collect { case y: Code => y })
+      case (x: StartTrace) +: (xs: Vector[_]) =>
+        val codes = xs.collect { case y: Code => y }
+        Trace.fromResult(x, codes, samples(x.num))
     }
 
-    val count = lines.collectFirst { case x: SamplesBegin => x }.map(_.total).getOrElse(0)
-
-    val samples = lines.collect { case x: Sample => x }
-    HProf(traces, count, samples)
+    HProf(traces, count)
   }
 
   private[construct] def split[A](xs: Vector[A], f: A => Boolean): Vector[Vector[A]] = {
